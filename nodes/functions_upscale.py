@@ -9,6 +9,8 @@
 # These functions are based on WAS nodes Image Resize and the Comfy Extras upscale with model nodes
 
 import torch
+
+import execution_context
 #import os
 from comfy_extras.chainner_models import model_loading
 from comfy import model_management
@@ -25,8 +27,8 @@ def pil2tensor(image):
 def tensor2pil(image):
     return Image.fromarray(np.clip(255. * image.cpu().numpy().squeeze(), 0, 255).astype(np.uint8))
 
-def load_model(model_name):
-    model_path = folder_paths.get_full_path("upscale_models", model_name)
+def load_model(context: execution_context.ExecutionContext, model_name):
+    model_path = folder_paths.get_full_path(context, "upscale_models", model_name)
     sd = comfy.utils.load_torch_file(model_path, safe_load=True)
     if "module.layers.0.residual_group.blocks.0.norm1.weight" in sd:
         sd = comfy.utils.state_dict_prefix_replace(sd, {"module.":""})

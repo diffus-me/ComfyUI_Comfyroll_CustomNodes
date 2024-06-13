@@ -7,6 +7,8 @@ import comfy.sd
 import torch
 import os
 import sys
+
+import execution_context
 import folder_paths
 import random
 from PIL import Image, ImageEnhance
@@ -38,6 +40,7 @@ class CR_CycleModels:
                              "loops": ("INT", {"default": 1, "min": 1, "max": 1000}),
                              "current_frame": ("INT", {"default": 0.0, "min": 0.0, "max": 9999.0, "step": 1.0,}),
                 },
+                "hidden": {"context": "EXECUTION_CONTEXT"}
         }
     
     RETURN_TYPES = ("MODEL", "CLIP", "VAE", "STRING", )
@@ -45,7 +48,7 @@ class CR_CycleModels:
     FUNCTION = "cycle_models"
     CATEGORY = icons.get("Comfyroll/Animation/Legacy")
 
-    def cycle_models(self, mode, model, clip, model_list, frame_interval, loops, current_frame,):
+    def cycle_models(self, mode, model, clip, model_list, frame_interval, loops, current_frame, context: execution_context.ExecutionContext):
         show_help = "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes/wiki/Cycler-Nodes#cr-cycle-models"
 
         # Initialize the list
@@ -74,7 +77,7 @@ class CR_CycleModels:
                 print(f"[Info] CR Cycle Models: Current model is {ckpt_name}")
                 
                 # Load the current model
-                ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
+                ckpt_path = folder_paths.get_full_path(context, "checkpoints", ckpt_name)
                 out = comfy.sd.load_checkpoint_guess_config(ckpt_path, output_vae=True, output_clip=True, 
                 embedding_directory=folder_paths.get_folder_paths("embeddings"))
                 return (out, show_help, )
@@ -97,6 +100,7 @@ class CR_CycleLoRAs:
                              "loops": ("INT", {"default": 1, "min": 1, "max": 1000}),
                              "current_frame": ("INT", {"default": 0.0, "min": 0.0, "max": 9999.0, "step": 1.0,}),                             
                 },
+                "hidden": {"context": "EXECUTION_CONTEXT"},
         }
     
     RETURN_TYPES = ("MODEL", "CLIP", "STRING", )
@@ -104,7 +108,7 @@ class CR_CycleLoRAs:
     FUNCTION = "cycle"
     CATEGORY = icons.get("Comfyroll/Animation/Legacy")
 
-    def cycle(self, mode, model, clip, lora_list, frame_interval, loops, current_frame):
+    def cycle(self, mode, model, clip, lora_list, frame_interval, loops, current_frame, context: execution_context.ExecutionContext):
         show_help = "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes/wiki/Cycler-Nodes#cr-cycle-loras"
 
         # Initialize the list
@@ -128,7 +132,7 @@ class CR_CycleLoRAs:
             lora_alias, lora_name, model_strength, clip_strength = current_lora_params
             
             # Load the current LoRA
-            lora_path = folder_paths.get_full_path("loras", lora_name)
+            lora_path = folder_paths.get_full_path(context, "loras", lora_name)
             lora = comfy.utils.load_torch_file(lora_path, safe_load=True)
             print(f"[Info] CR_CycleLoRAs: Current LoRA is {lora_name}")
 

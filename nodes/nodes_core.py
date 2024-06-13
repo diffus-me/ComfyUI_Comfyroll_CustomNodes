@@ -10,6 +10,8 @@ import sys
 import csv
 import comfy.sd
 import json
+
+import execution_context
 import folder_paths
 import typing as tg
 import datetime
@@ -26,7 +28,6 @@ from ..categories import icons
 #---------------------------------------------------------------------------------------------------------------------#
 class CR_ImageOutput:
     def __init__(self):
-        self.output_dir = folder_paths.get_output_directory()
         self.type = "output"
 
     @classmethod
@@ -41,7 +42,7 @@ class CR_ImageOutput:
                      "prefix_presets": (presets, ),
                      "file_format": (["png", "jpg", "webp", "tif"],),
                     },
-                "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
+                "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO", "context": "EXECUTION_CONTEXT"},
                 "optional": 
                     {"trigger": ("BOOLEAN", {"default": False},),
                     }
@@ -54,7 +55,7 @@ class CR_ImageOutput:
     CATEGORY = icons.get("Comfyroll/Essential/Core")
 
     def save_images(self, images, file_format, prefix_presets, filename_prefix="CR",
-        trigger=False, output_type="Preview", prompt=None, extra_pnginfo=None):
+        trigger=False, output_type="Preview", prompt=None, extra_pnginfo=None, context: execution_context.ExecutionContext=None):
               
         show_help = "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes/wiki/Core-Nodes#cr-image-output"
     
@@ -68,10 +69,10 @@ class CR_ImageOutput:
             return (digits, prefix)
 
         if output_type == "Save":
-            self.output_dir = folder_paths.get_output_directory()
+            self.output_dir = folder_paths.get_output_directory(context.user_hash)
             self.type = "output"
         elif output_type == "Preview":
-            self.output_dir = folder_paths.get_temp_directory()
+            self.output_dir = folder_paths.get_temp_directory(context.user_hash)
             self.type = "temp"
      
         date_formats = {
@@ -330,9 +331,9 @@ class CR_ConditioningMixer:
 class CR_SelectModel:
     
     @classmethod
-    def INPUT_TYPES(cls):
+    def INPUT_TYPES(cls, context: execution_context.ExecutionContext):
     
-        checkpoint_files = ["None"] + folder_paths.get_filename_list("checkpoints")
+        checkpoint_files = ["None"] + folder_paths.get_filename_list(context, "checkpoints")
         
         return {"required": {"ckpt_name1": (checkpoint_files,),
                              "ckpt_name2": (checkpoint_files,),
@@ -340,7 +341,8 @@ class CR_SelectModel:
                              "ckpt_name4": (checkpoint_files,),
                              "ckpt_name5": (checkpoint_files,),
                              "select_model": ("INT", {"default": 1, "min": 1, "max": 5}),
-                            }    
+                            },
+                "hidden": {"context": "EXECUTION_CONTEXT"}
                }
 
 
@@ -349,7 +351,7 @@ class CR_SelectModel:
     FUNCTION = "select_model"
     CATEGORY = icons.get("Comfyroll/Essential/Core")
 
-    def select_model(self, ckpt_name1, ckpt_name2, ckpt_name3, ckpt_name4, ckpt_name5, select_model):
+    def select_model(self, ckpt_name1, ckpt_name2, ckpt_name3, ckpt_name4, ckpt_name5, select_model, context: execution_context.ExecutionContext):
             
         show_help = "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes/wiki/Core-Nodes#cr-select-model"
     
@@ -371,7 +373,7 @@ class CR_SelectModel:
             print(f"CR Select Model: No model selected")
             return()
 
-        ckpt_path = folder_paths.get_full_path("checkpoints", model_name)
+        ckpt_path = folder_paths.get_full_path(context, "checkpoints", model_name)
         model, clip, vae, clipvision = comfy.sd.load_checkpoint_guess_config(ckpt_path, output_vae=True, output_clip=True,
                                                      embedding_directory=folder_paths.get_folder_paths("embeddings"))
             

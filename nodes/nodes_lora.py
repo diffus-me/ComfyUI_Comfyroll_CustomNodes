@@ -7,6 +7,7 @@ import os
 import sys
 import comfy.sd
 import comfy.utils
+import execution_context
 import folder_paths
 import hashlib
 from random import random, uniform
@@ -23,9 +24,9 @@ class CR_LoraLoader:
         self.loaded_lora = None
 
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
     
-        file_list = folder_paths.get_filename_list("loras")
+        file_list = folder_paths.get_filename_list(context, "loras")
         file_list.insert(0, "None")
         
         return {"required": { "model": ("MODEL",),
@@ -34,13 +35,14 @@ class CR_LoraLoader:
                               "lora_name": (file_list, ),
                               "strength_model": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
                               "strength_clip": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
-                              }}
+                              },
+                "hidden": {"context": "EXECUTION_CONTEXT"}}
     RETURN_TYPES = ("MODEL", "CLIP", "STRING", )
     RETURN_NAMES = ("MODEL", "CLIP", "show_help", )
     FUNCTION = "load_lora"
     CATEGORY = icons.get("Comfyroll/LoRA")
 
-    def load_lora(self, model, clip, switch, lora_name, strength_model, strength_clip):
+    def load_lora(self, model, clip, switch, lora_name, strength_model, strength_clip, context: execution_context.ExecutionContext):
         show_help = "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes/wiki/LoRA-Nodes#cr-load-lora"
         if strength_model == 0 and strength_clip == 0:
             return (model, clip, show_help, )
@@ -48,7 +50,7 @@ class CR_LoraLoader:
         if switch == "Off" or  lora_name == "None":
             return (model, clip, show_help, )
 
-        lora_path = folder_paths.get_full_path("loras", lora_name)
+        lora_path = folder_paths.get_full_path(context, "loras", lora_name)
         lora = None
         if self.loaded_lora is not None:
             if self.loaded_lora[0] == lora_path:
@@ -69,9 +71,9 @@ class CR_LoraLoader:
 class CR_LoRAStack:
 
     @classmethod
-    def INPUT_TYPES(cls):
+    def INPUT_TYPES(cls, context: execution_context.ExecutionContext):
     
-        loras = ["None"] + folder_paths.get_filename_list("loras")
+        loras = ["None"] + folder_paths.get_filename_list(context, "loras")
         
         return {"required": {
                     "switch_1": (["Off","On"],),
@@ -126,7 +128,8 @@ class CR_ApplyLoRAStack:
         return {"required": {"model": ("MODEL",),
                             "clip": ("CLIP", ),
                             "lora_stack": ("LORA_STACK", ),
-                            }
+                            },
+                "hidden": {"context": "EXECUTION_CONTEXT"}
         }
 
     RETURN_TYPES = ("MODEL", "CLIP", "STRING", )
@@ -134,7 +137,7 @@ class CR_ApplyLoRAStack:
     FUNCTION = "apply_lora_stack"
     CATEGORY = icons.get("Comfyroll/LoRA")
 
-    def apply_lora_stack(self, model, clip, lora_stack=None,):
+    def apply_lora_stack(self, model, clip, lora_stack=None, context: execution_context.ExecutionContext = None):
         show_help = "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes/wiki/LoRA-Nodes#cr-apply-lora-stack"
 
         # Initialise the list
@@ -154,7 +157,7 @@ class CR_ApplyLoRAStack:
         for tup in lora_params:
             lora_name, strength_model, strength_clip = tup
             
-            lora_path = folder_paths.get_full_path("loras", lora_name)
+            lora_path = folder_paths.get_full_path(context, "loras", lora_name)
             lora = comfy.utils.load_torch_file(lora_path, safe_load=True)
             
             model_lora, clip_lora = comfy.sd.load_lora_for_models(model_lora, clip_lora, lora, strength_model, strength_clip)  
@@ -167,9 +170,9 @@ class CR_ApplyLoRAStack:
 class CR_RandomWeightLoRA:
 
     @classmethod
-    def INPUT_TYPES(cls):
+    def INPUT_TYPES(cls, context: execution_context.ExecutionContext):
 
-        loras = ["None"] + folder_paths.get_filename_list("loras")
+        loras = ["None"] + folder_paths.get_filename_list(context, "loras")
 
         return {"required": {
                     "stride": (("INT", {"default": 1, "min": 1, "max": 1000})),
@@ -252,9 +255,9 @@ class CR_RandomWeightLoRA:
 class CR_RandomLoRAStack:
 
     @classmethod
-    def INPUT_TYPES(cls):
+    def INPUT_TYPES(cls, context: execution_context.ExecutionContext):
 
-        loras = ["None"] + folder_paths.get_filename_list("loras")
+        loras = ["None"] + folder_paths.get_filename_list(context, "loras")
 
         return {"required": {
                     "exclusive_mode": (["Off","On"],),

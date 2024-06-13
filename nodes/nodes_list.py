@@ -7,6 +7,8 @@ import torch
 import numpy as np
 import os
 import sys
+
+import execution_context
 import folder_paths
 import re
 import comfy.sd
@@ -44,7 +46,7 @@ class AnyType(str):
 
 any_type = AnyType("*")
 
-def get_input_folder(input_folder, input_path):
+def get_input_folder(context: execution_context.ExecutionContext, input_folder, input_path):
     # Set the input path
     if input_path != '' and input_path is not None:
         if not os.path.exists(input_path):
@@ -52,7 +54,7 @@ def get_input_folder(input_folder, input_path):
             return ("",)  
         in_path = input_path
     else:
-        input_dir = folder_paths.input_directory
+        input_dir = folder_paths.get_input_directory(context.user_hash)
         in_path = os.path.join(input_dir, input_folder)
     return in_path    
 
@@ -136,9 +138,9 @@ class CR_PromptList:
 class CR_LoadImageList:
 
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
     
-        input_dir = folder_paths.input_directory
+        input_dir = folder_paths.get_input_directory(context.user_hash)
         image_folder = [name for name in os.listdir(input_dir) if os.path.isdir(os.path.join(input_dir,name))] 
     
         return {"required": {"input_folder": (sorted(image_folder), ),
@@ -146,7 +148,8 @@ class CR_LoadImageList:
                              "max_images": ("INT", {"default": 1, "min": 1, "max": 9999}),
                },
                "optional": {"input_path": ("STRING", {"default": '', "multiline": False}),     
-               }
+               },
+               "hidden": {"context": "EXECUTION_CONTEXT"}
         }
 
     RETURN_TYPES = ("IMAGE", "STRING", )
@@ -155,7 +158,7 @@ class CR_LoadImageList:
     FUNCTION = "make_list"
     CATEGORY = icons.get("Comfyroll/List/IO")
 
-    def make_list(self, start_index, max_images, input_folder, input_path=None):
+    def make_list(self, start_index, max_images, input_folder, input_path=None, context: execution_context.ExecutionContext=None):
 
         show_help = "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes/wiki/List-Nodes#cr-image-list"
 
@@ -166,7 +169,7 @@ class CR_LoadImageList:
                 return ("",)  
             in_path = input_path
         else:
-            input_dir = folder_paths.input_directory
+            input_dir = folder_paths.get_input_directory(context.user_hash)
             in_path = os.path.join(input_dir, input_folder)
 
         # Check if the folder is empty
@@ -203,9 +206,9 @@ class CR_LoadImageList:
 class CR_LoadImageListPlus:
 
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
     
-        input_dir = folder_paths.input_directory
+        input_dir = folder_paths.get_input_directory(context.user_hash)
         image_folder = [name for name in os.listdir(input_dir) if os.path.isdir(os.path.join(input_dir,name))] 
     
         return {"required": {"input_folder": (sorted(image_folder), ),
@@ -213,7 +216,8 @@ class CR_LoadImageListPlus:
                              "max_images": ("INT", {"default": 1, "min": 1, "max": 99999}),
                },
                "optional": {"input_path": ("STRING", {"default": '', "multiline": False}),     
-               }
+               },
+              "hidden": {"context": "EXECUTION_CONTEXT"}
         }
 
     RETURN_TYPES = ("IMAGE", "MASK", "INT", "STRING", "INT", "INT", "INT", "STRING", )
@@ -222,7 +226,7 @@ class CR_LoadImageListPlus:
     FUNCTION = "make_list"
     CATEGORY = icons.get("Comfyroll/List/IO")
 
-    def make_list(self, start_index, max_images, input_folder, input_path=None, vae=None):
+    def make_list(self, start_index, max_images, input_folder, input_path=None, vae=None, context: execution_context.ExecutionContext=None):
     
         show_help = "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes/wiki/List-Nodes#cr-image-list-plus"
 
@@ -233,7 +237,7 @@ class CR_LoadImageListPlus:
                 return ("",)  
             in_path = input_path
         else:
-            input_dir = folder_paths.input_directory
+            input_dir = folder_paths.get_input_directory(user_hash=context.user_hash)
             in_path = os.path.join(input_dir, input_folder)
 
         # Check if the folder is empty
@@ -292,9 +296,9 @@ class CR_LoadImageListPlus:
 class CR_LoadGIFAsList:
    
     @classmethod
-    def INPUT_TYPES(cls):
+    def INPUT_TYPES(cls, context: execution_context.ExecutionContext):
     
-        input_dir = folder_paths.input_directory
+        input_dir = folder_paths.get_input_directory(context.user_hash)
         image_folder = [name for name in os.listdir(input_dir) if os.path.isdir(os.path.join(input_dir,name))] 
     
         return {"required": {"input_folder": (sorted(image_folder), ),
@@ -302,7 +306,8 @@ class CR_LoadGIFAsList:
                              "start_frame": ("INT", {"default": 0, "min": 0, "max": 99999}),
                              "max_frames": ("INT", {"default": 1, "min": 1, "max": 99999}),                              
                             },                    
-                "optional": {"input_path": ("STRING", {"default": '', "multiline": False}),     
+                "optional": {"input_path": ("STRING", {"default": '', "multiline": False}),
+                "hidden": {"context": "EXECUTION_CONTEXT"}
                 }    
         }
 
@@ -312,7 +317,7 @@ class CR_LoadGIFAsList:
     FUNCTION = "load_gif"
     CATEGORY = icons.get("Comfyroll/List/IO")
  
-    def load_gif(self, input_folder, gif_filename, start_frame, max_frames, input_path=None):
+    def load_gif(self, input_folder, gif_filename, start_frame, max_frames, input_path=None, context: execution_context.ExecutionContext=None):
     
         show_help = "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes/wiki/List-Nodes#cr-load-gif-images"
       
@@ -323,7 +328,7 @@ class CR_LoadGIFAsList:
                 return ("",)  
             in_path = input_path
         else:
-            input_dir = folder_paths.input_directory
+            input_dir = folder_paths.get_input_directory(context.user_hash)
             in_path = os.path.join(input_dir, input_folder)
   
         # Construct the GIF file path

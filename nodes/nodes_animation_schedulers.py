@@ -6,6 +6,8 @@
 import comfy.sd
 import os
 import sys
+
+import execution_context
 import folder_paths
 from nodes import LoraLoader
 from .functions_animation import keyframe_scheduler, prompt_scheduler
@@ -346,19 +348,21 @@ class CR_SimpleTextScheduler:
 class CR_LoadScheduledModels:
 
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
     
         modes = ["Load default Model", "Schedule"]
 
         return {"required": {"mode": (modes,),
                              "current_frame": ("INT", {"default": 0.0, "min": 0.0, "max": 9999.0, "step": 1.0,}),
                              "schedule_alias": ("STRING", {"default": "", "multiline": False}),
-                             "default_model": (folder_paths.get_filename_list("checkpoints"), ), 
+                             "default_model": (folder_paths.get_filename_list(context, "checkpoints"), ),
                              "schedule_format": (["CR", "Deforum"],)
                 },
                 "optional": {"model_list": ("MODEL_LIST",),
                             "schedule": ("SCHEDULE",) 
-                },                
+                },
+                "hidden": {"context": "EXECUTION_CONTEXT"
+                },
         }
  
     RETURN_TYPES = ("MODEL", "CLIP", "VAE", "STRING", )
@@ -366,14 +370,14 @@ class CR_LoadScheduledModels:
     FUNCTION = "schedule"
     CATEGORY = icons.get("Comfyroll/Animation/Schedulers")
 
-    def schedule(self, mode, current_frame, schedule_alias, default_model, schedule_format, model_list=None, schedule=None):
+    def schedule(self, mode, current_frame, schedule_alias, default_model, schedule_format, model_list=None, schedule=None, context: execution_context.ExecutionContext = None):
         show_help = "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes/wiki/Scheduler-Nodes#cr-load-scheduled-models"
 
         #model_name = ""
     
         # Load default Model mode
         if mode == "Load default Model":
-            ckpt_path = folder_paths.get_full_path("checkpoints", default_model)
+            ckpt_path = folder_paths.get_full_path(context, "checkpoints", default_model)
             out = comfy.sd.load_checkpoint_guess_config(ckpt_path, output_vae=True, output_clip=True, embedding_directory=folder_paths.get_folder_paths("embeddings"))
             print(f"[Debug] CR Load Scheduled Models. Loading default model.")    
             return (out[:3], show_help, )
@@ -384,7 +388,7 @@ class CR_LoadScheduledModels:
         # Handle case where there is no schedule line for a frame 
         if params == "":
             print(f"[Warning] CR Load Scheduled Models. No model specified in schedule for frame {current_frame}. Using default model.")
-            ckpt_path = folder_paths.get_full_path("checkpoints", default_model)
+            ckpt_path = folder_paths.get_full_path(context, "checkpoints", default_model)
             out = comfy.sd.load_checkpoint_guess_config(ckpt_path, output_vae=True, output_clip=True, embedding_directory=folder_paths.get_folder_paths("embeddings"))
             return (out[:3], show_help, )
         else:
@@ -409,7 +413,7 @@ class CR_LoadScheduledModels:
             print(f"[Info] CR Load Scheduled Models. Model alias {model_alias} matched to {model_name}")
         
         # Load the new model
-        ckpt_path = folder_paths.get_full_path("checkpoints", model_name)
+        ckpt_path = folder_paths.get_full_path(context, "checkpoints", model_name)
         out = comfy.sd.load_checkpoint_guess_config(ckpt_path, output_vae=True, output_clip=True, embedding_directory=folder_paths.get_folder_paths("embeddings"))
         print(f"[Info] CR Load Scheduled Models. Loading new checkpoint model {model_name}")
         return (out[:3], show_help, )
@@ -418,7 +422,7 @@ class CR_LoadScheduledModels:
 class CR_LoadScheduledLoRAs:
 
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
     
         modes = ["Off", "Load default LoRA", "Schedule"]
 
@@ -427,7 +431,7 @@ class CR_LoadScheduledLoRAs:
                              "clip": ("CLIP", ),        
                              "current_frame": ("INT", {"default": 0.0, "min": 0.0, "max": 9999.0, "step": 1.0,}),
                              "schedule_alias": ("STRING", {"default": "", "multiline": False}),
-                             "default_lora": (folder_paths.get_filename_list("loras"), ),
+                             "default_lora": (folder_paths.get_filename_list(context, "loras"), ),
                              "strength_model": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
                              "strength_clip": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),                      
                              "schedule_format": (["CR", "Deforum"],)

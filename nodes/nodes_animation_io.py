@@ -10,6 +10,8 @@ import torch
 import numpy as np
 import os
 import sys
+
+import execution_context
 import folder_paths
 import math
 import json
@@ -50,18 +52,22 @@ def get_files(image_path, sort_by="Index", pattern=None):
 #---------------------------------------------------------------------------------------------------------------------#
 class CR_LoadAnimationFrames:
     #input_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))), 'input')
-    input_dir = folder_paths.input_directory
+    # input_dir = folder_paths.get_input_directory()
     #print(f"CR_LoadAnimationFrames: input directory {input_dir}")
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
         #if not os.path.exists(s.input_dir):
             #os.makedirs(s.input_dir)
-        image_folder = [name for name in os.listdir(s.input_dir) if os.path.isdir(os.path.join(s.input_dir,name)) and len(os.listdir(os.path.join(s.input_dir,name))) != 0]
+        input_dir = folder_paths.get_input_directory(context.user_hash)
+        image_folder = [name for name in os.listdir(input_dir) if os.path.isdir(os.path.join(input_dir,name)) and len(os.listdir(os.path.join(input_dir,name))) != 0]
         return {"required":
                     {"image_sequence_folder": (sorted(image_folder), ),
                      "start_index": ("INT", {"default": 1, "min": 1, "max": 10000}),
                      "max_frames": ("INT", {"default": 1, "min": 1, "max": 10000})
-                     }
+                     },
+                "hidden": {
+                    "context": "EXECUTION_CONTEXT"
+                    }
                 }
 
     RETURN_TYPES = ("IMAGE", "STRING", )
@@ -69,8 +75,9 @@ class CR_LoadAnimationFrames:
     FUNCTION = "load_image_sequence"
     CATEGORY = icons.get("Comfyroll/Animation/IO")
 
-    def load_image_sequence(self, image_sequence_folder, start_index, max_frames):
-        image_path = os.path.join(self.input_dir, image_sequence_folder)
+    def load_image_sequence(self, image_sequence_folder, start_index, max_frames, context: execution_context.ExecutionContext):
+        input_dir = folder_paths.get_input_directory(context.user_hash)
+        image_path = os.path.join(input_dir, image_sequence_folder)
         file_list = sorted(os.listdir(image_path), key=lambda s: sum(((s, int(n)) for s, n in re.findall(r'(\D+)(\d+)', 'a%s0' % s)), ()))
         sample_frames = []
         sample_frames_mask = []
@@ -89,11 +96,11 @@ class CR_LoadAnimationFrames:
 class CR_LoadFlowFrames:
 # based on Load Image Sequence in vid2vid and mtb
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
     
         sort_methods = ["Index", "Alphabetic"]
         #sort_methods = ["Date modified", "Alphabetic", "Index"]
-        input_dir = folder_paths.input_directory
+        input_dir = folder_paths.get_input_directory(context.user_hash)
 
         input_folders = [name for name in os.listdir(input_dir) if os.path.isdir(os.path.join(input_dir,name)) and len(os.listdir(os.path.join(input_dir,name))) != 0]
 
@@ -106,7 +113,11 @@ class CR_LoadFlowFrames:
                 "optional":
                     {"input_path": ("STRING", {"default": '', "multiline": False}),
                      "file_pattern": ("STRING", {"default": '*.png', "multiline": False}),
-                    } 
+                    },
+                "hidden":
+                    {
+                        "context": "EXECUTION_CONTEXT"
+                    }
                 }
 
     CATEGORY = icons.get("Comfyroll/Animation/IO")
@@ -115,10 +126,10 @@ class CR_LoadFlowFrames:
     RETURN_NAMES = ("current_image", "previous_image", "current_frame", "show_help", )
     FUNCTION = "load_images"
 
-    def load_images(self, file_pattern, skip_start_frames, input_folder, sort_by, current_frame, input_path=''):
+    def load_images(self, file_pattern, skip_start_frames, input_folder, sort_by, current_frame, input_path='', context: execution_context.ExecutionContext=None):
         show_help = "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes/wiki/IO-Nodes#cr-load-flow-frames"
 
-        input_dir = folder_paths.input_directory
+        input_dir = folder_paths.get_input_directory(context.user_hash)
         
         current_frame = current_frame + skip_start_frames
         print(f"[Info] CR Load Flow Frames: current_frame {current_frame}")
@@ -175,9 +186,9 @@ class CR_OutputFlowFrames:
         self.type = "output"
 
     @classmethod
-    def INPUT_TYPES(cls):
-    
-        output_dir = folder_paths.output_directory
+    def INPUT_TYPES(cls, context: execution_context.ExecutionContext):
+
+        output_dir = folder_paths.get_output_directory(context.user_hash)
         output_folders = [name for name in os.listdir(output_dir) if os.path.isdir(os.path.join(output_dir,name)) and len(os.listdir(os.path.join(output_dir,name))) != 0]
     
         return {
@@ -188,6 +199,9 @@ class CR_OutputFlowFrames:
             },
             "optional": {"interpolated_img": ("IMAGE", ),
                          "output_path": ("STRING", {"default": '', "multiline": False}),           
+            },
+            "hidden": {
+                "context": "EXECUTION_CONTEXT"
             }
         }
 
@@ -196,9 +210,9 @@ class CR_OutputFlowFrames:
     OUTPUT_NODE = True
     CATEGORY = icons.get("Comfyroll/Animation/IO")
 
-    def save_images(self, output_folder, current_image, current_frame, output_path='', filename_prefix="CR", interpolated_img=None):
+    def save_images(self, output_folder, current_image, current_frame, output_path='', filename_prefix="CR", interpolated_img=None, context: execution_context.ExecutionContext=None):
     
-        output_dir = folder_paths.get_output_directory()  
+        output_dir = folder_paths.get_output_directory(context.user_hash)
         out_folder = os.path.join(output_dir, output_folder)
         
         if output_path != '':
