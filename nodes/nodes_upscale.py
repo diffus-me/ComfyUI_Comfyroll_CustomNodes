@@ -5,6 +5,8 @@
 
 import torch
 import numpy as np
+
+import execution_context
 import folder_paths
 from PIL import Image
 from ..categories import icons
@@ -20,19 +22,22 @@ from .functions_upscale import *
 class CR_UpscaleImage:
 
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
 
         resampling_methods = ["lanczos", "nearest", "bilinear", "bicubic"]
        
         return {"required":
                     {"image": ("IMAGE",),
-                     "upscale_model": (folder_paths.get_filename_list("upscale_models"), ),
+                     "upscale_model": (folder_paths.get_filename_list(context, "upscale_models"), ),
                      "mode": (["rescale", "resize"],),
                      "rescale_factor": ("FLOAT", {"default": 2, "min": 0.01, "max": 16.0, "step": 0.01}),
                      "resize_width": ("INT", {"default": 1024, "min": 1, "max": 48000, "step": 1}),
                      "resampling_method": (resampling_methods,),                     
                      "supersample": (["true", "false"],),   
                      "rounding_modulus": ("INT", {"default": 8, "min": 8, "max": 1024, "step": 8}),
+                     },
+                "hidden":
+                    {"context": "EXECUTION_CONTEXT"
                      }
                 }
 
@@ -41,10 +46,10 @@ class CR_UpscaleImage:
     FUNCTION = "upscale"
     CATEGORY = icons.get("Comfyroll/Upscale")
     
-    def upscale(self, image, upscale_model, rounding_modulus=8, loops=1, mode="rescale", supersample='true', resampling_method="lanczos", rescale_factor=2, resize_width=1024):
+    def upscale(self, image, upscale_model, rounding_modulus=8, loops=1, mode="rescale", supersample='true', resampling_method="lanczos", rescale_factor=2, resize_width=1024, context: execution_context.ExecutionContext = None):
 
         # Load upscale model 
-        up_model = load_model(upscale_model)
+        up_model = load_model(context, upscale_model)
 
         # Upscale with model
         up_image = upscale_with_model(up_model, image)  
@@ -77,10 +82,10 @@ class CR_UpscaleImage:
 class CR_MultiUpscaleStack:
 
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
     
         mix_methods = ["Combine", "Average", "Concatenate"]
-        up_models = ["None"] + folder_paths.get_filename_list("upscale_models")
+        up_models = ["None"] + folder_paths.get_filename_list(context, "upscale_models")
         
         return {"required":
                     {
@@ -136,7 +141,8 @@ class CR_ApplyMultiUpscale:
                              "supersample": (["true", "false"],),                     
                              "rounding_modulus": ("INT", {"default": 8, "min": 8, "max": 1024, "step": 8}),                   
                              "upscale_stack": ("UPSCALE_STACK",),
-                            }
+                            },
+                "hidden": {"context": "EXECUTION_CONTEXT"},
         }
     
     RETURN_TYPES = ("IMAGE", "STRING", )
@@ -144,7 +150,7 @@ class CR_ApplyMultiUpscale:
     FUNCTION = "apply"
     CATEGORY = icons.get("Comfyroll/Upscale")
 
-    def apply(self, image, resampling_method, supersample, rounding_modulus, upscale_stack):
+    def apply(self, image, resampling_method, supersample, rounding_modulus, upscale_stack, context: execution_context.ExecutionContext):
 
         # Get original size
         pil_img = tensor2pil(image)
@@ -159,7 +165,7 @@ class CR_ApplyMultiUpscale:
             upscale_model, rescale_factor = tup
             print(f"[Info] CR Apply Multi Upscale: Applying {upscale_model} and rescaling by factor {rescale_factor}")
             # Load upscale model 
-            up_model = load_model(upscale_model)
+            up_model = load_model(context, upscale_model)
 
             # Upscale with model
             up_image = upscale_with_model(up_model, image)

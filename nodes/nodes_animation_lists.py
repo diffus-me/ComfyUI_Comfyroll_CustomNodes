@@ -7,6 +7,8 @@ import comfy.sd
 import torch
 import os
 import sys
+
+import execution_context
 import folder_paths
 from ..categories import icons
 
@@ -18,9 +20,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "co
 class CR_ModelList:
 
     @classmethod
-    def INPUT_TYPES(cls):
+    def INPUT_TYPES(cls, context: execution_context.ExecutionContext):
     
-        checkpoint_files = ["None"] + folder_paths.get_filename_list("checkpoints")
+        checkpoint_files = ["None"] + folder_paths.get_filename_list(context, "checkpoints")
         
         return {"required": {
                     "ckpt_name1": (checkpoint_files,),
@@ -34,7 +36,8 @@ class CR_ModelList:
                     "ckpt_name5": (checkpoint_files,),
                     "alias5": ("STRING", {"multiline": False, "default": ""}),                    
                 },
-                "optional": {"model_list": ("MODEL_LIST",)
+                "optional": {"model_list": ("MODEL_LIST",),
+                 "hidden": {"context": "EXECUTION_CONTEXT"}
                 },
         }
 
@@ -44,7 +47,7 @@ class CR_ModelList:
     CATEGORY = icons.get("Comfyroll/Animation/Legacy")
 
     def model_list(self, ckpt_name1, alias1, ckpt_name2, alias2, ckpt_name3, alias3, ckpt_name4, alias4,
-        ckpt_name5, alias5, model_list=None):
+        ckpt_name5, alias5, model_list=None, context: execution_context.ExecutionContext = None):
 
         # Initialise the list
         models = list()
@@ -90,9 +93,9 @@ class CR_ModelList:
 class CR_LoRAList:
     
     @classmethod
-    def INPUT_TYPES(cls):
+    def INPUT_TYPES(cls, context: execution_context.ExecutionContext):
     
-        lora_files = ["None"] + folder_paths.get_filename_list("loras")
+        lora_files = ["None"] + folder_paths.get_filename_list(context, "loras")
         
         return {"required": {                    
                     "lora_name1": (lora_files,),
@@ -110,7 +113,8 @@ class CR_LoRAList:
                     "model_strength_3": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
                     "clip_strength_3": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),  
                 },
-                "optional": {"lora_list": ("lora_LIST",)
+                "optional": {"lora_list": ("lora_LIST",),
+                 "hidden": {"context": "EXECUTION_CONTEXT"},
                 },
         }
 
@@ -121,7 +125,7 @@ class CR_LoRAList:
 
     def lora_list(self, lora_name1, model_strength_1, clip_strength_1, alias1,
     lora_name2, model_strength_2, clip_strength_2, alias2,
-    lora_name3, model_strength_3, clip_strength_3, alias3, lora_list=None):
+    lora_name3, model_strength_3, clip_strength_3, alias3, lora_list=None, context: execution_context.ExecutionContext = None):
 
         # Initialise the list
         loras = list()

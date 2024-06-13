@@ -5,6 +5,7 @@
 
 import comfy.sd
 import comfy.model_management
+import execution_context
 import folder_paths
 from ..categories import icons
 
@@ -14,9 +15,9 @@ from ..categories import icons
 class CR_ModelMergeStack:
     
     @classmethod
-    def INPUT_TYPES(cls):
+    def INPUT_TYPES(cls, context: execution_context.ExecutionContext):
     
-        checkpoint_files = ["None"] + folder_paths.get_filename_list("checkpoints")
+        checkpoint_files = ["None"] + folder_paths.get_filename_list(context, "checkpoints")
         
         return {"required": {"switch_1": (["Off","On"],),
                              "ckpt_name1": (checkpoint_files,),
@@ -76,7 +77,8 @@ class CR_ApplyModelMerge:
                              "merge_method": (merge_methods,),
                              "normalise_ratios": (["Yes","No"],),
                              "weight_factor":("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                            }
+                            },
+                "hidden": {"context": "EXECUTION_CONTEXT"}
         }
         
     RETURN_TYPES = ("MODEL", "CLIP", "STRING", "STRING", )
@@ -84,7 +86,7 @@ class CR_ApplyModelMerge:
     FUNCTION = "merge"
     CATEGORY = icons.get("Comfyroll/Model Merge")
 
-    def merge(self, model_stack, merge_method, normalise_ratios, weight_factor):
+    def merge(self, model_stack, merge_method, normalise_ratios, weight_factor, context: execution_context.ExecutionContext):
     
         # Initialise
         sum_clip_ratio = 0
@@ -100,7 +102,7 @@ class CR_ApplyModelMerge:
         if len(model_stack) == 1:
             print(f"[Warning] Apply Model Merge: Only one active model found in the model merge stack. At least 2 models are normally needed for merging. The active model will be output.")
             model_name, model_ratio, clip_ratio = model_stack[0]
-            ckpt_path = folder_paths.get_full_path("checkpoints", model_name)
+            ckpt_path = folder_paths.get_full_path(context, "checkpoints", model_name)
             return comfy.sd.load_checkpoint_guess_config(ckpt_path, output_vae=True, output_clip=True, embedding_directory=folder_paths.get_folder_paths("embeddings"))
         
         # Calculate ratio sums for normalisation        
@@ -115,7 +117,7 @@ class CR_ApplyModelMerge:
         # Loop through the models and compile the merged model
         for i, model_tuple in enumerate(model_stack):
             model_name, model_ratio, clip_ratio = model_tuple
-            ckpt_path = folder_paths.get_full_path("checkpoints", model_name)
+            ckpt_path = folder_paths.get_full_path(context, "checkpoints", model_name)
             merge_model = comfy.sd.load_checkpoint_guess_config(ckpt_path, output_vae=True, output_clip=True, embedding_directory=folder_paths.get_folder_paths("embeddings"))
             print(f"Apply Model Merge: Model Name {model_name}, Model Ratio {model_ratio}, CLIP Ratio {clip_ratio}")
 

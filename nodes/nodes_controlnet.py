@@ -7,6 +7,7 @@ import os
 import sys
 import comfy.controlnet
 import comfy.sd
+import execution_context
 import folder_paths
 from nodes import ControlNetApplyAdvanced
 from ..categories import icons
@@ -55,28 +56,30 @@ class CR_ApplyControlNet:
 # This node is a stack of controlnets each with their own switch.
 class CR_ControlNetStack:
 
-    controlnets = ["None"] + folder_paths.get_filename_list("controlnet")
+    @classmethod
+    def controlnets(cls, context: execution_context.ExecutionContext):
+        return ["None"] + folder_paths.get_filename_list(context, "controlnet")
     
     @classmethod
-    def INPUT_TYPES(cls):
+    def INPUT_TYPES(cls, context: execution_context.ExecutionContext):
         #controlnets = ["None"]
         return {"required": {
                 },
                 "optional": {
                     "switch_1": (["Off","On"],),
-                    "controlnet_1": (cls.controlnets,),
+                    "controlnet_1": (cls.controlnets(context),),
                     "controlnet_strength_1": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
                     "start_percent_1": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.001}),
                     "end_percent_1": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.001}),
                     #
                     "switch_2": (["Off","On"],),
-                    "controlnet_2": (cls.controlnets,),
+                    "controlnet_2": (cls.controlnets(context),),
                     "controlnet_strength_2": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
                     "start_percent_2": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.001}),
                     "end_percent_2": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.001}),
                     #
                     "switch_3": (["Off","On"],),
-                    "controlnet_3": (cls.controlnets,),
+                    "controlnet_3": (cls.controlnets(context),),
                     "controlnet_strength_3": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
                     "start_percent_3": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.001}),
                     "end_percent_3": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.001}),
@@ -86,6 +89,7 @@ class CR_ControlNetStack:
                     "image_3": ("IMAGE",),
                     "controlnet_stack": ("CONTROL_NET_STACK",)
                 },
+                "hidden": {"context": "EXECUTION_CONTEXT"}
         }
 
     RETURN_TYPES = ("CONTROL_NET_STACK", "STRING", )
@@ -96,7 +100,8 @@ class CR_ControlNetStack:
     def controlnet_stacker(self, switch_1, controlnet_1, controlnet_strength_1, start_percent_1, end_percent_1,
                            switch_2, controlnet_2, controlnet_strength_2, start_percent_2, end_percent_2,
                            switch_3, controlnet_3, controlnet_strength_3, start_percent_3, end_percent_3,
-                           image_1=None, image_2=None, image_3=None, controlnet_stack=None):
+                           image_1=None, image_2=None, image_3=None, controlnet_stack=None,
+                           context: execution_context.ExecutionContext = None):
 
         # Initialise the list
         controlnet_list= []
@@ -105,17 +110,17 @@ class CR_ControlNetStack:
             controlnet_list.extend([l for l in controlnet_stack if l[0] != "None"])
         
         if controlnet_1 != "None" and  switch_1 == "On" and image_1 is not None:
-            controlnet_path = folder_paths.get_full_path("controlnet", controlnet_1)
+            controlnet_path = folder_paths.get_full_path(context, "controlnet", controlnet_1)
             controlnet_1 = comfy.controlnet.load_controlnet(controlnet_path)
             controlnet_list.extend([(controlnet_1, image_1, controlnet_strength_1, start_percent_1, end_percent_1)]),
 
         if controlnet_2 != "None" and  switch_2 == "On" and image_2 is not None:
-            controlnet_path = folder_paths.get_full_path("controlnet", controlnet_2)
+            controlnet_path = folder_paths.get_full_path(context, "controlnet", controlnet_2)
             controlnet_2 = comfy.controlnet.load_controlnet(controlnet_path)
             controlnet_list.extend([(controlnet_2, image_2, controlnet_strength_2, start_percent_2, end_percent_2)]),
 
         if controlnet_3 != "None" and  switch_3 == "On" and image_3 is not None:
-            controlnet_path = folder_paths.get_full_path("controlnet", controlnet_3)
+            controlnet_path = folder_paths.get_full_path(context, "controlnet", controlnet_3)
             controlnet_3 = comfy.controlnet.load_controlnet(controlnet_path)
             controlnet_list.extend([(controlnet_3, image_3, controlnet_strength_3, start_percent_3, end_percent_3)]),
 
@@ -133,7 +138,8 @@ class CR_ApplyControlNetStack:
                              "base_negative": ("CONDITIONING",),
                              "switch": (["Off","On"],),
                              "controlnet_stack": ("CONTROL_NET_STACK", ),
-                            }
+                            },
+                "hidden": {"context": "EXECUTION_CONTEXT"}
         }                    
 
     RETURN_TYPES = ("CONDITIONING", "CONDITIONING", "STRING", )
@@ -141,7 +147,7 @@ class CR_ApplyControlNetStack:
     FUNCTION = "apply_controlnet_stack"
     CATEGORY = icons.get("Comfyroll/ControlNet")
 
-    def apply_controlnet_stack(self, base_positive, base_negative, switch, controlnet_stack=None,):
+    def apply_controlnet_stack(self, base_positive, base_negative, switch, controlnet_stack=None, context: execution_context.ExecutionContext = None):
         show_help = "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes/wiki/ControlNet-Nodes#cr-apply-multi-controlnet-stack"
 
         if switch == "Off":
@@ -152,7 +158,7 @@ class CR_ApplyControlNetStack:
                 controlnet_name, image, strength, start_percent, end_percent  = controlnet_tuple
                 
                 if type(controlnet_name) == str:
-                    controlnet_path = folder_paths.get_full_path("controlnet", controlnet_name)
+                    controlnet_path = folder_paths.get_full_path(context, "controlnet", controlnet_name)
                     controlnet = comfy.sd.load_controlnet(controlnet_path)
                 else:
                     controlnet = controlnet_name

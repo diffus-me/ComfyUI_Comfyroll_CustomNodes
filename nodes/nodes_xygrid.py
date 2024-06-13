@@ -5,6 +5,8 @@
 # based on https://github.com/LEv145/images-grid-comfy-plugin
 
 import os
+
+import execution_context
 import folder_paths
 from PIL import Image, ImageFont
 import torch
@@ -204,9 +206,9 @@ class CR_XYIndex:
 class CR_XYFromFolder:
 
     @classmethod
-    def INPUT_TYPES(cls) -> dict[str, t.Any]:
+    def INPUT_TYPES(cls, context: execution_context.ExecutionContext) -> dict[str, t.Any]:
     
-        input_dir = folder_paths.output_directory
+        input_dir = folder_paths.get_output_directory(context.user_hash)
         image_folder = [name for name in os.listdir(input_dir) if os.path.isdir(os.path.join(input_dir,name))] 
         
         return {"required":
@@ -221,7 +223,10 @@ class CR_XYFromFolder:
                      },
                 "optional": {
                     "trigger": ("BOOLEAN", {"default": False},),
-            }                     
+                    },
+                "hidden": {
+                    "context": "EXECUTION_CONTEXT"
+                }
                 }
 
     RETURN_TYPES = ("IMAGE", "BOOLEAN", "STRING", )
@@ -229,13 +234,13 @@ class CR_XYFromFolder:
     FUNCTION = "load_images"
     CATEGORY = icons.get("Comfyroll/XY Grid") 
     
-    def load_images(self, image_folder, start_index, end_index, max_columns, x_annotation, y_annotation, font_size, gap, trigger=False):
+    def load_images(self, image_folder, start_index, end_index, max_columns, x_annotation, y_annotation, font_size, gap, trigger=False, context: execution_context.ExecutionContext=None):
         show_help = "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes/wiki/XY-Grid-Nodes#cr-xy-from-folder"
 
         if trigger == False:
             return((), False, show_help, )
             
-        input_dir = folder_paths.output_directory
+        input_dir = folder_paths.get_output_directory(context.user_hash)
         image_path = os.path.join(input_dir, image_folder)
         file_list = sorted(os.listdir(image_path), key=lambda s: sum(((s, int(n)) for s, n in re.findall(r'(\D+)(\d+)', 'a%s0' % s)), ()))
         
@@ -287,9 +292,9 @@ class CR_XYSaveGridImage:
         self.type = "output"
 
     @classmethod
-    def INPUT_TYPES(cls):
+    def INPUT_TYPES(cls, context: execution_context.ExecutionContext):
     
-        output_dir = folder_paths.output_directory
+        output_dir = folder_paths.get_output_directory(context.user_hash)
         output_folders = [name for name in os.listdir(output_dir) if os.path.isdir(os.path.join(output_dir,name))]
     
         return {
@@ -301,6 +306,9 @@ class CR_XYSaveGridImage:
             },
             "optional": {"output_path": ("STRING", {"default": '', "multiline": False}),
                          "trigger": ("BOOLEAN", {"default": False},),                         
+            },
+            "hidden": {
+                "context": "EXECUTION_CONTEXT"
             }
         }
 
@@ -309,12 +317,12 @@ class CR_XYSaveGridImage:
     OUTPUT_NODE = True
     CATEGORY = icons.get("Comfyroll/XY Grid") 
             
-    def save_image(self, mode, output_folder, image, file_format, output_path='', filename_prefix="CR", trigger=False):
+    def save_image(self, mode, output_folder, image, file_format, output_path='', filename_prefix="CR", trigger=False, context: execution_context.ExecutionContext=None):
 
         if trigger == False:
             return ()
         
-        output_dir = folder_paths.get_output_directory()  
+        output_dir = folder_paths.get_output_directory(context.user_hash)
         out_folder = os.path.join(output_dir, output_folder)
 
         # Set the output path
@@ -324,10 +332,10 @@ class CR_XYSaveGridImage:
                 return ("",)
             out_path = output_path
         else:
-            out_path = os.path.join(output_dir, out_folder)
+            out_path = os.path.join(out_folder, output_path)
         
         if mode == "Preview":
-            out_path = folder_paths.temp_directory
+            out_path = folder_paths.get_temp_directory(context.user_hash)
 
         print(f"[Info] CR Save XY Grid Image: Output path is `{out_path}`")
         
