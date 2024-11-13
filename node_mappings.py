@@ -99,8 +99,8 @@ NODE_CLASS_MAPPINGS = {
     "CR Random Weight LoRA": CR_RandomWeightLoRA,
     "CR Apply LoRA Stack": CR_ApplyLoRAStack,  
     ### Model Merge Nodes
-    "CR Apply Model Merge": CR_ApplyModelMerge,
-    "CR Model Merge Stack": CR_ModelMergeStack,
+    # "CR Apply Model Merge": CR_ApplyModelMerge,
+    # "CR Model Merge Stack": CR_ModelMergeStack,
     ### Pipe Nodes
     "CR Data Bus In":CR_DataBusIn,
     "CR Data Bus Out":CR_DataBusOut,

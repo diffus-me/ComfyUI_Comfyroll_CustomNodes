@@ -48,6 +48,28 @@ class CR_CycleModels:
     FUNCTION = "cycle_models"
     CATEGORY = icons.get("Comfyroll/Animation/Legacy")
 
+    @classmethod
+    def VALIDATE_INPUTS(cls, mode, model, clip, model_list, frame_interval, loops, current_frame, context: execution_context.ExecutionContext):
+        model_params = list()
+
+        # Extend lora_params with the lora_list items
+        if model_list:
+            for _ in range(loops):
+                model_params.extend(model_list)
+            # print(f"[Debug] CR Cycle Models:{model_params}")
+
+        if mode == "Off":
+            pass
+        elif mode == "Sequential":
+            if current_frame == 0:
+                pass
+            else:
+                current_model_index = (current_frame // frame_interval) % len(model_params)
+                current_model_params = model_params[current_model_index]
+                model_alias, ckpt_name = current_model_params
+                context.validate_model("checkpoints", ckpt_name)
+        return True
+
     def cycle_models(self, mode, model, clip, model_list, frame_interval, loops, current_frame, context: execution_context.ExecutionContext):
         show_help = "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes/wiki/Cycler-Nodes#cr-cycle-models"
 
@@ -107,6 +129,27 @@ class CR_CycleLoRAs:
     RETURN_NAMES = ("MODEL", "CLIP", "show_help", )
     FUNCTION = "cycle"
     CATEGORY = icons.get("Comfyroll/Animation/Legacy")
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, mode, model, clip, lora_list, frame_interval, loops, current_frame, context: execution_context.ExecutionContext):
+        # Initialize the list
+        lora_params = list()
+
+        # Extend lora_params with lora_list items
+        if lora_list:
+            for _ in range(loops):
+                lora_params.extend(lora_list)
+
+        if mode == "Sequential":
+            if lora_list:
+                current_lora_index = (current_frame // frame_interval) % len(lora_params)
+                # print(f"[Debug] CR Cycle LoRAs:{current_lora_index}")
+
+                # Get the parameters of the current LoRA
+                current_lora_params = lora_params[current_lora_index]
+                lora_alias, lora_name, model_strength, clip_strength = current_lora_params
+                context.validate_model("loras", lora_name)
+        return True
 
     def cycle(self, mode, model, clip, lora_list, frame_interval, loops, current_frame, context: execution_context.ExecutionContext):
         show_help = "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes/wiki/Cycler-Nodes#cr-cycle-loras"

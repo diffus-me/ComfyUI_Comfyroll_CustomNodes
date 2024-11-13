@@ -149,7 +149,8 @@ class CR_ImageOutput:
                 results.append({
                     "filename": file_name,
                     "subfolder": subfolder,
-                    "type": self.type
+                    "type": self.type,
+                    "user_hash": context.user_hash,
                 })
                 counter += 1
 
@@ -350,6 +351,24 @@ class CR_SelectModel:
     RETURN_NAMES = ("MODEL", "CLIP", "VAE", "ckpt_name", "show_help", )
     FUNCTION = "select_model"
     CATEGORY = icons.get("Comfyroll/Essential/Core")
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, ckpt_name1, ckpt_name2, ckpt_name3, ckpt_name4, ckpt_name5, select_model, context: execution_context.ExecutionContext):
+        model_name = "None"
+        if select_model == 1:
+            model_name = ckpt_name1
+        elif select_model == 2:
+            model_name = ckpt_name2
+        elif select_model == 3:
+            model_name = ckpt_name3
+        elif select_model == 4:
+            model_name = ckpt_name4
+        elif select_model == 5:
+            model_name = ckpt_name5
+
+        if model_name != "None":
+            context.validate_model("checkpoints", model_name)
+        return True
 
     def select_model(self, ckpt_name1, ckpt_name2, ckpt_name3, ckpt_name4, ckpt_name5, select_model, context: execution_context.ExecutionContext):
             

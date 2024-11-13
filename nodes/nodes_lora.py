@@ -42,6 +42,15 @@ class CR_LoraLoader:
     FUNCTION = "load_lora"
     CATEGORY = icons.get("Comfyroll/LoRA")
 
+    @classmethod
+    def VALIDATE_INPUTS(cls, model, clip, switch, lora_name, strength_model, strength_clip, context: execution_context.ExecutionContext):
+        if strength_model == 0 and strength_clip == 0:
+            return True
+        if switch == "Off" or lora_name == "None":
+            return True
+        context.validate_model("loras", lora_name)
+        return True
+
     def load_lora(self, model, clip, switch, lora_name, strength_model, strength_clip, context: execution_context.ExecutionContext):
         show_help = "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes/wiki/LoRA-Nodes#cr-load-lora"
         if strength_model == 0 and strength_clip == 0:
@@ -91,6 +100,9 @@ class CR_LoRAStack:
                 },
                 "optional": {"lora_stack": ("LORA_STACK",)
                 },
+                "hidden": {
+                    "context": "EXECUTION_CONTEXT"
+                }
         }
 
     RETURN_TYPES = ("LORA_STACK", "STRING", )
@@ -98,7 +110,20 @@ class CR_LoRAStack:
     FUNCTION = "lora_stacker"
     CATEGORY = icons.get("Comfyroll/LoRA")
 
-    def lora_stacker(self, lora_name_1, model_weight_1, clip_weight_1, switch_1, lora_name_2, model_weight_2, clip_weight_2, switch_2, lora_name_3, model_weight_3, clip_weight_3, switch_3, lora_stack=None):
+    @classmethod
+    def VALIDATE_INPUTS(cls, lora_name_1, model_weight_1, clip_weight_1, switch_1, lora_name_2, model_weight_2, clip_weight_2, switch_2, lora_name_3, model_weight_3, clip_weight_3, switch_3, lora_stack=None, context: execution_context.ExecutionContext = None):
+        if lora_name_1 != "None" and switch_1 == "On":
+            context.validate_model("loras", lora_name_1)
+
+        if lora_name_2 != "None" and switch_2 == "On":
+            context.validate_model("loras", lora_name_2)
+
+        if lora_name_3 != "None" and switch_3 == "On":
+            context.validate_model("loras", lora_name_3)
+
+        return True
+
+    def lora_stacker(self, lora_name_1, model_weight_1, clip_weight_1, switch_1, lora_name_2, model_weight_2, clip_weight_2, switch_2, lora_name_3, model_weight_3, clip_weight_3, switch_3, lora_stack=None, context: execution_context.ExecutionContext = None):
 
         # Initialise the list
         lora_list=list()
@@ -136,6 +161,17 @@ class CR_ApplyLoRAStack:
     RETURN_NAMES = ("MODEL", "CLIP", "show_help", )
     FUNCTION = "apply_lora_stack"
     CATEGORY = icons.get("Comfyroll/LoRA")
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, model, clip, lora_stack=None, context: execution_context.ExecutionContext = None):
+        if lora_stack:
+            lora_params = list()
+            lora_params.extend(lora_stack)
+            for tup in lora_params:
+                lora_name, strength_model, strength_clip = tup
+                context.validate_model("loras", lora_name)
+
+        return True
 
     def apply_lora_stack(self, model, clip, lora_stack=None, context: execution_context.ExecutionContext = None):
         show_help = "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes/wiki/LoRA-Nodes#cr-apply-lora-stack"
@@ -183,7 +219,8 @@ class CR_RandomWeightLoRA:
                     "weight_max": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
                     "clip_weight": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
                 },
-                "optional": {"lora_stack": ("LORA_STACK",)
+                "optional": {"lora_stack": ("LORA_STACK",),
+                "hidden": {"context": "EXECUTION_CONTEXT"},
                 },
         }
 
@@ -201,7 +238,7 @@ class CR_RandomWeightLoRA:
         return hashlib.sha256(fl_str.encode('utf-8')).hexdigest()
 
     @classmethod
-    def IS_CHANGED(cls, stride, force_randomize_after_stride, lora_name, switch, weight_min, weight_max, clip_weight, lora_stack=None):     
+    def IS_CHANGED(cls, stride, force_randomize_after_stride, lora_name, switch, weight_min, weight_max, clip_weight, lora_stack=None, context: execution_context.ExecutionContext = None):
         id_hash = CR_RandomWeightLoRA.getIdHash(lora_name, force_randomize_after_stride, stride, weight_min, weight_max, clip_weight)
 
         if switch == "Off":
@@ -232,7 +269,13 @@ class CR_RandomWeightLoRA:
         CR_RandomWeightLoRA.LastHashMap[id_hash] = hash_str
         return hash_str
 
-    def random_weight_lora(self, stride, force_randomize_after_stride, lora_name, switch, weight_min, weight_max, clip_weight, lora_stack=None):
+    @classmethod
+    def VALIDATE_INPUTS(cls, stride, force_randomize_after_stride, lora_name, switch, weight_min, weight_max, clip_weight, lora_stack=None, context: execution_context.ExecutionContext = None):
+        if lora_name != "None" and switch == "On":
+            context.validate_model("loras", lora_name)
+        return True
+
+    def random_weight_lora(self, stride, force_randomize_after_stride, lora_name, switch, weight_min, weight_max, clip_weight, lora_stack=None, context: execution_context.ExecutionContext = None):
         id_hash = CR_RandomWeightLoRA.getIdHash(lora_name, force_randomize_after_stride, stride, weight_min, weight_max, clip_weight)
 
         # Initialise the list
@@ -281,6 +324,9 @@ class CR_RandomLoRAStack:
                 },
                 "optional": {"lora_stack": ("LORA_STACK",)
                 },
+                "hidden": {
+                    "context": "EXECUTION_CONTEXT"
+                }
         }
 
     RETURN_TYPES = ("LORA_STACK",)
@@ -335,7 +381,8 @@ class CR_RandomLoRAStack:
 
     @classmethod
     def IS_CHANGED(cls, exclusive_mode, stride, force_randomize_after_stride, lora_name_1, model_weight_1, clip_weight_1, switch_1, chance_1, lora_name_2,
-                    model_weight_2, clip_weight_2, switch_2, chance_2, lora_name_3, model_weight_3, clip_weight_3, switch_3, chance_3, lora_stack=None):     
+                    model_weight_2, clip_weight_2, switch_2, chance_2, lora_name_3, model_weight_3, clip_weight_3, switch_3, chance_3, lora_stack=None,
+                    context: execution_context.ExecutionContext = None):
         lora_set = set()
 
         lora_name_1, lora_name_2, lora_name_3 = CR_RandomLoRAStack.deduplicateLoraNames(lora_name_1, lora_name_2, lora_name_3)        
@@ -406,8 +453,25 @@ class CR_RandomLoRAStack:
         CR_RandomLoRAStack.LastHashMap[id_hash] = hash_str
         return hash_str
 
+    @classmethod
+    def VALIDATE_INPUTS(cls, exclusive_mode, stride, force_randomize_after_stride, lora_name_1, model_weight_1, clip_weight_1, switch_1, chance_1, lora_name_2,
+                    model_weight_2, clip_weight_2, switch_2, chance_2, lora_name_3, model_weight_3, clip_weight_3, switch_3, chance_3, lora_stack=None,
+                    context: execution_context.ExecutionContext = None):
+        lora_name_1, lora_name_2, lora_name_3 = CR_RandomLoRAStack.deduplicateLoraNames(lora_name_1, lora_name_2, lora_name_3)
+        id_hash = CR_RandomLoRAStack.getIdHash(lora_name_1, lora_name_2, lora_name_3)
+
+        used_loras = CR_RandomLoRAStack.UsedLorasMap.get(id_hash, set())
+        if lora_name_1 != "None" and switch_1 == "On" and lora_name_1 in used_loras:
+            context.validate_model("loras", lora_name_1)
+        if lora_name_2 != "None" and switch_2 == "On" and lora_name_2 in used_loras:
+            context.validate_model("loras", lora_name_2)
+        if lora_name_3 != "None" and switch_3 == "On" and lora_name_3 in used_loras:
+            context.validate_model("loras", lora_name_3)
+        return True
+
     def random_lora_stacker(self, exclusive_mode, stride, force_randomize_after_stride, lora_name_1, model_weight_1, clip_weight_1, switch_1, chance_1, lora_name_2,
-                    model_weight_2, clip_weight_2, switch_2, chance_2, lora_name_3, model_weight_3, clip_weight_3, switch_3, chance_3, lora_stack=None):
+                    model_weight_2, clip_weight_2, switch_2, chance_2, lora_name_3, model_weight_3, clip_weight_3, switch_3, chance_3, lora_stack=None,
+                    context: execution_context.ExecutionContext = None):
 
         # Initialise the list
         lora_list=list()

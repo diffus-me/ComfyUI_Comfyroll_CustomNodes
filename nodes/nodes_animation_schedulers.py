@@ -370,6 +370,29 @@ class CR_LoadScheduledModels:
     FUNCTION = "schedule"
     CATEGORY = icons.get("Comfyroll/Animation/Schedulers")
 
+    @classmethod
+    def VALIDATE_INPUTS(cls, mode, current_frame, schedule_alias, default_model, schedule_format, model_list=None, schedule=None, context: execution_context.ExecutionContext = None):
+        if mode == "Load default Model":
+            context.validate_model("checkpoints", default_model)
+        else:
+            params = keyframe_scheduler(schedule, schedule_alias, current_frame)
+            if params == "":
+                context.validate_model("checkpoints", default_model)
+            else:
+                try:
+                    model_alias = str(params)
+                except ValueError:
+                    model_alias = ""
+
+                model_name = ""
+                for ckpt_alias, ckpt_name in model_list:
+                    if ckpt_alias == model_alias:
+                        model_name = ckpt_name
+                        break  # Exit the loop early once a match is found, ignores any duplicate matches
+                if model_name:
+                    context.validate_model("checkpoints", model_name)
+        return True
+
     def schedule(self, mode, current_frame, schedule_alias, default_model, schedule_format, model_list=None, schedule=None, context: execution_context.ExecutionContext = None):
         show_help = "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes/wiki/Scheduler-Nodes#cr-load-scheduled-models"
 

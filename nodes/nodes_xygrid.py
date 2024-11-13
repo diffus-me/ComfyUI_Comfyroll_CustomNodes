@@ -6,7 +6,6 @@
 
 import os
 
-import execution_context
 import folder_paths
 from PIL import Image, ImageFont
 import torch
@@ -17,7 +16,9 @@ import typing as t
 from dataclasses import dataclass
 from .functions_xygrid import create_images_grid_by_columns, Annotation
 from ..categories import icons
-    
+
+import execution_context
+
 def tensor_to_pillow(image: t.Any) -> Image.Image:
     return Image.fromarray(np.clip(255. * image.cpu().numpy().squeeze(), 0, 255).astype(np.uint8))
 
@@ -359,7 +360,7 @@ class CR_XYSaveGridImage:
         img.save(resolved_image_path, **img_params[file_format])
         print(f"[Info] CR Save XY Grid Image: Saved to {output_filename}.{file_format}")
         out_filename = f"{output_filename}.{file_format}"
-        preview = {"ui": {"images": [{"filename": out_filename,"subfolder": out_path,"type": self.type,}]}}
+        preview = {"ui": {"images": [{"filename": out_filename,"subfolder": out_path,"type": self.type,"user_hash": context.user_hash,}]}}
        
         return preview
 
